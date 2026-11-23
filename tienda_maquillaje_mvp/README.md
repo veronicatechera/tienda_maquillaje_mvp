@@ -1,32 +1,40 @@
-# Tienda de maquillaje — prototipo MVP
+# Tienda de maquillaje — React + Vite + Supabase
 
-## Cómo probar
-1. Descomprimí el ZIP.
-2. Abrí `index.html` en Chrome, Edge o Firefox.
-3. Entrá en **Administrar**.
-4. Clave de demostración: `demo2026`.
-5. En **Tienda**, configurá el nombre y el WhatsApp internacional (solo números; Uruguay: 598 + número, sin `+` ni espacios).
-6. En **Productos**, agregá, editá o eliminá productos.
+## 1. Base de datos (una sola vez)
+En Supabase → **SQL Editor**, ejecutá en orden:
+1. `supabase/01_schema.sql`
+2. `supabase/02_settings.sql`
 
-## Incluye
-- Catálogo responsive.
-- Búsqueda y filtros por categoría y modalidad.
-- Productos en stock y por encargo.
-- Carrito y mensaje de pedido por WhatsApp.
-- Retiro coordinado y envío a coordinar.
-- Panel de productos, costos privados, precios y stock.
-- Registro local de pedidos de prueba.
-- Exportación e importación de respaldo JSON.
+Luego creá tu usuario en **Authentication → Users → Add user** (con "Auto Confirm User") y ejecutá:
 
-## Importante: alcance del prototipo
-Esta primera entrega guarda los datos en el almacenamiento local del navegador (`localStorage`). Eso significa que:
-- Los cambios solo aparecen en ese navegador/dispositivo.
-- No existe sincronización entre varios dispositivos.
-- La clave `demo2026` está escrita en el código y NO protege información en producción.
-- Los pedidos enviados a WhatsApp no se reciben automáticamente dentro del panel.
-- No hay pagos online ni control de stock transaccional.
+```sql
+insert into public.admins (user_id)
+select id from auth.users where email = 'tu@email.com';
+```
 
-**No publiques esta versión como tienda operativa con datos privados.** Antes del lanzamiento real hay que conectar una base de datos y autenticación segura (por ejemplo Supabase), proteger el panel y configurar las reglas de acceso. También conviene reemplazar las imágenes de referencia por fotografías reales de cada producto y revisar precios/costos.
+## 2. Probar en tu computadora
+Requiere [Node.js](https://nodejs.org) 18 o superior.
 
-## Publicar más adelante
-La versión final puede desplegarse en Vercel. Este prototipo es un HTML autónomo y se puede subir como sitio estático para una demostración, pero no debe utilizarse como panel privado de producción.
+```bash
+npm install
+npm run dev
+```
+Abrí la dirección que muestra (normalmente http://localhost:5173).
+El panel está en `http://localhost:5173/#/admin` (también hay un enlace "Administrar" en el pie de la tienda).
+
+El archivo `.env` ya trae la URL y la clave **pública** de tu proyecto. Esa clave puede estar en el navegador; la seguridad la dan las reglas (RLS) del esquema. **Nunca** pongas la clave `secret`/`service_role` en este proyecto.
+
+## 3. Publicar en Vercel
+1. Subí esta carpeta al repositorio de GitHub (`.env` no se sube: está en `.gitignore`).
+2. En Vercel: **Add New → Project →** elegí el repositorio (Framework: Vite).
+3. En **Environment Variables** cargá `VITE_SUPABASE_URL` y `VITE_SUPABASE_PUBLISHABLE_KEY` con los mismos valores de `.env`.
+4. **Deploy**. Cada `git push` vuelve a publicar.
+5. En Supabase → Authentication → URL Configuration, poné la dirección de Vercel como *Site URL*.
+
+## Cómo funciona un pedido
+El cliente arma la bolsa → la base de datos registra el pedido, calcula el total con los precios reales y descuenta el stock → se le ofrece abrir WhatsApp con el resumen. Aunque el cliente no envíe el mensaje, el pedido aparece en **Administrar → Pedidos**. Al cancelar un pedido, el stock vuelve a quedar disponible.
+
+## Seguridad
+- Los costos viven en una tabla aparte que solo ve la administradora.
+- Los clientes no escriben en la base directamente: solo pueden llamar a `create_order`.
+- Usá una contraseña larga y única para tu usuario administrador.
