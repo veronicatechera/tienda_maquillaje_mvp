@@ -60,3 +60,14 @@ export function slugify(s) {
 }
 
 export const shortId = (uuid = '') => uuid.slice(0, 8).toUpperCase()
+
+// Color de la lámina de cada categoría mientras el producto no tiene foto.
+export const CATEGORY_TONES = {
+  Rostro: { bg: '#dcc9b9', fg: '#461e2b' },
+  Ojos: { bg: '#461e2b', fg: '#f4efe8' },
+  Labios: { bg: '#6b3345', fg: '#f4efe8' },
+  Uñas: { bg: '#7a6169', fg: '#f4efe8' },
+  Accesorios: { bg: '#171516', fg: '#dcc9b9' },
+  'Cuidado facial': { bg: '#e9dfd7', fg: '#461e2b' },
+  Otros: { bg: '#b89a83', fg: '#2b1119' },
+}

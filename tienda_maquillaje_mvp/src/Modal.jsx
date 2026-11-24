@@ -1,6 +1,6 @@
 import { useEffect, useRef } from 'react'
 
-export default function Modal({ title, onClose, children }) {
+export default function Modal({ title, onClose, children, side = false }) {
   const ref = useRef(null)
 
   useEffect(() => {
@@ -17,8 +17,8 @@ export default function Modal({ title, onClose, children }) {
   }, [onClose])
 
   return (
-    <div className="modal" onMouseDown={(e) => e.target === e.currentTarget && onClose()}>
-      <div className="dialog" role="dialog" aria-modal="true" aria-label={title} tabIndex={-1} ref={ref}>
+    <div className={side ? 'modal side' : 'modal'} onMouseDown={(e) => e.target === e.currentTarget && onClose()}>
+      <div className={side ? 'dialog drawer' : 'dialog'} role="dialog" aria-modal="true" aria-label={title} tabIndex={-1} ref={ref}>
         <div className="dialog-head">
           <h2>{title}</h2>
           <button className="close" onClick={onClose} aria-label="Cerrar">

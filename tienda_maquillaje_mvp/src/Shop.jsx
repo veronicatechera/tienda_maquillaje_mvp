@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { supabase } from './supabase'
 import Cart from './Cart.jsx'
-import { CATEGORIES, money, plural, store } from './lib'
+import { CATEGORIES, CATEGORY_TONES, money, plural, store } from './lib'
 
 export default function Shop({ settings }) {
   const [products, setProducts] = useState([])
@@ -11,6 +11,7 @@ export default function Shop({ settings }) {
   const [mode, setMode] = useState('')
   const [cart, setCart] = useState(() => store.get('beauty_cart', []))
   const [cartOpen, setCartOpen] = useState(false)
+  const [scrolled, setScrolled] = useState(false)
 
   const load = useCallback(async () => {
     const { data, error } = await supabase
@@ -27,6 +28,13 @@ export default function Shop({ settings }) {
   }, [load])
 
   useEffect(() => store.set('beauty_cart', cart), [cart])
+
+  useEffect(() => {
+    const onScroll = () => setScrolled(window.scrollY > 260)
+    onScroll()
+    window.addEventListener('scroll', onScroll, { passive: true })
+    return () => window.removeEventListener('scroll', onScroll)
+  }, [])
 
   const maxFor = (p) => (p.mode === 'stock' ? p.stock : 99)
 
@@ -72,100 +80,149 @@ export default function Shop({ settings }) {
       (!mode || p.mode === mode),
   )
 
+  // Categorías que tienen productos, con su cantidad.
+  const categories = CATEGORIES.map((c) => [c, products.filter((p) => p.category === c).length]).filter(([, n]) => n > 0)
+
+  // El nombre de la tienda ocupa todo el ancho de la portada: cuanto más largo, más chico.
+  const mastSize = `clamp(48px, ${Math.min(15, 140 / Math.max(settings.name.length, 6))}vw, 230px)`
+
   return (
     <>
-      <header>
-        <div className="nav">
-          <div className="brand">{settings.name}</div>
-          <button className="iconbtn" onClick={() => setCartOpen(true)}>
-            Bolsa <span>{cartCount}</span>
+      <header className="site-head">
+        <div className="site-head-in">
+          <span className={`brand-mini${scrolled ? ' show' : ''}`} aria-hidden={!scrolled}>
+            {settings.name}
+          </span>
+          <button className="bag" onClick={() => setCartOpen(true)}>
+            Bolsa <b>{cartCount}</b>
           </button>
         </div>
       </header>
 
+      <section
+        className="cover"
+        style={
+          settings.hero_image_url
+            ? { backgroundImage: `linear-gradient(180deg,rgba(43,17,25,.55),rgba(43,17,25,.8)),url(${JSON.stringify(settings.hero_image_url)})`, backgroundSize: 'cover', backgroundPosition: 'center' }
+            : undefined
+        }
+      >
+        <h1 className="masthead" style={{ fontSize: mastSize }}>
+          {settings.name}
+        </h1>
+        <div className="cover-row">
+          <p className="deck">Tu belleza, tu propia editorial.</p>
+          <p className="cover-note">Maquillaje y cuidado facial. Elegí lo que te gusta y hacé tu pedido por WhatsApp.</p>
+          <a
+            className="btn light"
+            href="#catalogo"
+            onClick={(e) => {
+              e.preventDefault()
+              document.getElementById('catalogo')?.scrollIntoView({ behavior: 'smooth' })
+            }}
+          >
+            Ver el catálogo
+          </a>
+        </div>
+      </section>
+
       <main>
-        <section className="hero">
-          <div className="hero-copy">
-            <div className="eyebrow">Beauty · Makeup · Self expression</div>
-            <h1>
-              Tu belleza,
-              <br />
-              tu propia
-              <br />
-              editorial.
-            </h1>
-            <p>Descubrí productos para crear tu estilo. Explorá el catálogo y prepará tu pedido de forma sencilla.</p>
-            <a className="btn light" href="#catalogo">
-              Explorar catálogo ↘
-            </a>
-          </div>
-          <div
-            className="hero-art"
-            role="img"
-            aria-label="Imagen de portada"
-            style={settings.hero_image_url ? { backgroundImage: `linear-gradient(145deg,rgba(23,21,22,.05),rgba(23,21,22,.5)),url(${JSON.stringify(settings.hero_image_url)})` } : undefined}
-          />
-        </section>
+        <section className="catalog" id="catalogo">
+          <aside className="index" aria-label="Filtros del catálogo">
+            <h2>El catálogo</h2>
+            <p className="count-line">{status === 'ready' ? plural(list.length, 'producto', 'productos') : 'Cargando…'}</p>
 
-        <section id="catalogo">
-          <div className="section-head">
-            <div>
-              <div className="eyebrow dark">Selección de belleza</div>
-              <h2>El catálogo</h2>
-              <p>Productos disponibles y opciones por encargo.</p>
-            </div>
-            {status === 'ready' && <span className="pill">{plural(list.length, 'producto', 'productos')}</span>}
-          </div>
+            <input
+              className="search"
+              aria-label="Buscar producto"
+              placeholder="Buscar producto"
+              value={q}
+              onChange={(e) => setQ(e.target.value)}
+            />
 
-          <div className="tools">
-            <input aria-label="Buscar producto" placeholder="Buscar producto..." value={q} onChange={(e) => setQ(e.target.value)} />
-            <select aria-label="Categoría" value={cat} onChange={(e) => setCat(e.target.value)}>
-              <option value="">Todas las categorías</option>
-              {CATEGORIES.map((c) => (
-                <option key={c}>{c}</option>
+            <h3>Categorías</h3>
+            <ul className="index-list">
+              <li>
+                <button aria-pressed={cat === ''} onClick={() => setCat('')}>
+                  <span>Todo</span><sup>{products.length}</sup>
+                </button>
+              </li>
+              {categories.map(([c, n]) => (
+                <li key={c}>
+                  <button aria-pressed={cat === c} onClick={() => setCat(cat === c ? '' : c)}>
+                    <span>{c}</span>
+                    <sup>{n}</sup>
+                  </button>
+                </li>
               ))}
-            </select>
-            <select aria-label="Disponibilidad" value={mode} onChange={(e) => setMode(e.target.value)}>
-              <option value="">Todos</option>
-              <option value="stock">En stock</option>
-              <option value="order">Por encargo</option>
-            </select>
-          </div>
+            </ul>
+
+            <h3>Disponibilidad</h3>
+            <ul className="index-list small">
+              {[
+                ['', 'Todos'],
+                ['stock', 'En stock'],
+                ['order', 'Por encargo'],
+              ].map(([v, label]) => (
+                <li key={v}>
+                  <button aria-pressed={mode === v} onClick={() => setMode(v)}>
+                    {label}
+                  </button>
+                </li>
+              ))}
+            </ul>
+          </aside>
 
           <div className="grid">
             {status === 'loading' && <div className="empty">Cargando catálogo…</div>}
             {status === 'error' && (
               <div className="empty">
-                No pudimos cargar el catálogo. <button className="linkbtn" onClick={load}>Reintentar</button>
+                No pudimos cargar el catálogo. <button className="linkbtn" onClick={load}>Probá de nuevo</button>
               </div>
             )}
-            {status === 'ready' && list.length === 0 && <div className="empty">No encontramos productos con esos filtros.</div>}
+            {status === 'ready' && list.length === 0 && (
+              <div className="empty">
+                No hay productos con esos filtros.{' '}
+                <button
+                  className="linkbtn"
+                  onClick={() => {
+                    setQ('')
+                    setCat('')
+                    setMode('')
+                  }}
+                >
+                  Ver todo el catálogo
+                </button>
+              </div>
+            )}
             {status === 'ready' &&
               list.map((p) => {
                 const soldOut = p.mode === 'stock' && p.stock < 1
+                const tone = CATEGORY_TONES[p.category] || CATEGORY_TONES.Otros
                 return (
                   <article className="product" key={p.id}>
-                    <div className="product-img">
-                      {p.image_url ? (
-                        <img src={p.image_url} alt={p.name} loading="lazy" onError={(e) => e.currentTarget.remove()} />
-                      ) : (
-                        <span>{p.category}</span>
-                      )}
+                    <div className="plate" style={{ '--plate-bg': tone.bg, '--plate-fg': tone.fg }}>
+                      <span>{p.category}</span>
+                      {p.image_url && <img src={p.image_url} alt={p.name} loading="lazy" onError={(e) => e.currentTarget.remove()} />}
                     </div>
-                    <div className="product-body">
-                      <div className="tag">{[p.brand, p.category].filter(Boolean).join(' · ')}</div>
-                      <h3>{p.name}</h3>
-                      <div className="desc">{p.description}</div>
-                      <div className="price">{money(p.price)}</div>
-                      <div className="stock">
+                    <div className="product-info">
+                      {p.brand && <div className="product-brand">{p.brand}</div>}
+                      <div className="product-top">
+                        <h3>{p.name}</h3>
+                        <div className="price">{money(p.price)}</div>
+                      </div>
+                      {p.description && <p className="desc">{p.description}</p>}
+                      <div className={`stock${p.mode === 'stock' && p.stock > 0 && p.stock <= 2 ? ' low' : ''}`}>
                         {p.mode === 'order'
-                          ? 'Por encargo · sujeto a confirmación'
+                          ? 'Por encargo, sujeto a confirmación'
                           : soldOut
                             ? 'Agotado'
-                            : `Disponible · ${plural(p.stock, 'unidad', 'unidades')}`}
+                            : p.stock === 1
+                              ? 'Última unidad'
+                              : `${p.stock} disponibles`}
                       </div>
-                      <button className="btn" disabled={soldOut} onClick={() => addToCart(p)}>
-                        {p.mode === 'order' ? 'Consultar / encargar' : soldOut ? 'Sin stock' : 'Agregar a la bolsa'}
+                      <button className="btn outline" disabled={soldOut} onClick={() => addToCart(p)}>
+                        {p.mode === 'order' ? 'Encargar' : soldOut ? 'Agotado' : 'Agregar a la bolsa'}
                       </button>
                     </div>
                   </article>
@@ -177,19 +234,19 @@ export default function Shop({ settings }) {
 
       <footer className="footer">
         <div className="footer-inner">
-          <div>
-            <div className="brand light">{settings.name}</div>
-            <small>{settings.tagline}</small>
+          <div className="brand">{settings.name}</div>
+          <div className="footer-cols">
+            <p>{settings.tagline}</p>
+            <p>
+              {settings.location}
+              <br />
+              Pedidos y consultas por WhatsApp
+              <br />
+              <a className="muted-link" href="#/admin">
+                Administrar
+              </a>
+            </p>
           </div>
-          <small>
-            {settings.location}
-            <br />
-            Pedidos y consultas por WhatsApp
-            <br />
-            <a className="muted-link" href="#/admin">
-              Administrar
-            </a>
-          </small>
         </div>
       </footer>
 

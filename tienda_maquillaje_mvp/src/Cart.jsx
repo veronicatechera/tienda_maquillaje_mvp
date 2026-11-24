@@ -54,7 +54,7 @@ export default function Cart({ lines, settings, onClose, onChangeQty, onOrdered 
       '\n\nQuedo a la espera de confirmar disponibilidad y entrega.'
 
     return (
-      <Modal title="¡Pedido registrado!" onClose={onClose}>
+      <Modal title="¡Pedido registrado!" onClose={onClose} side>
         <p>
           Tu pedido <b>#{shortId(done.order_id)}</b> por <b>{money(done.total)}</b> quedó registrado.
         </p>
@@ -76,7 +76,7 @@ export default function Cart({ lines, settings, onClose, onChangeQty, onOrdered 
   }
 
   return (
-    <Modal title="Tu bolsa" onClose={onClose}>
+    <Modal title="Tu bolsa" onClose={onClose} side>
       {lines.length === 0 ? (
         <div className="empty">Tu bolsa está vacía.</div>
       ) : (
@@ -86,7 +86,7 @@ export default function Cart({ lines, settings, onClose, onChangeQty, onOrdered 
               <div>
                 <b>{p.name}</b>
                 <div className="stock">
-                  {money(p.price)} · {p.mode === 'order' ? 'Por encargo' : 'En stock'}
+                  {money(p.price)} c/u, {p.mode === 'order' ? 'por encargo' : 'en stock'}
                 </div>
               </div>
               <div className="qty">
